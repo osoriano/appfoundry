@@ -44,7 +44,19 @@ RUN mkdir packages/backend/dist/skeleton packages/backend/dist/bundle \
     && tar xzf packages/backend/dist/skeleton.tar.gz -C packages/backend/dist/skeleton \
     && tar xzf packages/backend/dist/bundle.tar.gz -C packages/backend/dist/bundle
 
-# Stage 3 - Build the actual backend image and install production dependencies
+# Stage 3 - unit tests
+FROM build AS test
+ENV CI=true
+RUN yarn run tsc:full && \
+    yarn run prettier:check && \
+    yarn run lint:all && \
+    yarn run test:all
+
+# Stage 4 - integration tests
+FROM test AS integration-test
+CMD [ "echo", "todo-add-integration-test" ]
+
+# Stage 5 - Build the actual backend image and install production dependencies
 FROM node:24-trixie-slim
 
 # Install sqlite3 dependencies. You can skip this if you don't use sqlite3 in the image,
