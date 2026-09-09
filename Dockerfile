@@ -24,7 +24,7 @@ FROM node:24-trixie-slim AS build
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && \
-    apt-get install -y --no-install-recommends libsqlite3-dev && \
+    apt-get install -y --no-install-recommends libsqlite3-dev build-essential python3 g++ && \
     rm -rf /var/lib/apt/lists/*
 
 USER node
@@ -33,7 +33,7 @@ WORKDIR /app
 COPY --from=packages --chown=node:node /app .
 
 RUN --mount=type=cache,target=/home/node/.cache/yarn,sharing=locked,uid=1000,gid=1000 \
-    yarn install --immutable
+    CXXFLAGS="-std=c++20" yarn install --immutable
 
 COPY --chown=node:node . .
 
