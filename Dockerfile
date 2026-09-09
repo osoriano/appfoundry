@@ -54,7 +54,7 @@ RUN yarn run tsc:full && \
 
 # Stage 4 - integration tests
 FROM test AS integration-test
-CMD [ "echo", "todo-add-integration-test" ]
+CMD [ "echo", "todo-add-integration-test1" ]
 
 # Stage 5 - Build the actual backend image and install production dependencies
 FROM node:24-trixie-slim
