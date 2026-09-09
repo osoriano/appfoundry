@@ -165,8 +165,11 @@ techdocs:
 auth:
   # see https://backstage.io/docs/auth/ to learn about auth providers
   providers:
-    # See https://backstage.io/docs/auth/guest/provider
-    guest: {}
+    oauth2Proxy:
+      signIn:
+        resolvers:
+          # See https://backstage.io/docs/auth/oauth2-proxy/provider#resolvers for more resolvers
+          - resolver: forwardedUserMatchingUserEntityName
   # see https://backstage.io/docs/ai/mcp-actions#client-id-metadata-documents
   # to learn more about client id metadata documents
   clientIdMetadataDocuments:
