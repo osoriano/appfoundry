@@ -3,6 +3,7 @@ import { createApp } from '@backstage/frontend-defaults';
 import { createFrontendModule } from '@backstage/frontend-plugin-api';
 import { SignInPageBlueprint } from '@backstage/plugin-app-react';
 import catalogPlugin from '@backstage/plugin-catalog/alpha';
+import apiDocsModuleCrd from '@terasky/backstage-plugin-api-docs-module-crd';
 import { navModule } from './modules/nav';
 import { homeModule } from './modules/home';
 
@@ -22,5 +23,6 @@ export default createApp({
       pluginId: 'app',
       extensions: [signInPage],
     }),
+    apiDocsModuleCrd,
   ],
 });
