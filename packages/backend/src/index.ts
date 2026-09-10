@@ -78,6 +78,8 @@ backend.add(import('@backstage/plugin-mcp-actions-backend'));
 backend.add(import('@terasky/backstage-plugin-kubernetes-ingestor'));
 
 // Add required scaffolder modules for template generation
-backend.add(import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'));
+backend.add(
+  import('@terasky/backstage-plugin-scaffolder-backend-module-terasky-utils'),
+);
 
 backend.start();
