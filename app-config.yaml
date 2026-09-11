@@ -221,6 +221,33 @@ catalog:
 
 kubernetes:
   # see https://backstage.io/docs/features/kubernetes/configuration for kubernetes configuration options
+  frontend:
+    podDelete:
+      enabled: true
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters:
+        - name: devcluster
+          authProvider: 'serviceAccount'
+          skipMetricsLookup: false
+          dashboardUrl: https://headlamp.osoriano.com
+          dashboardApp: headlamp
+          dashboardParameters:
+            clusterName: 'main' # Optional, defaults to 'default'
+          # caData: ${K8S_CONFIG_CA_DATA}
+          caFile: '/var/run/secrets/kubernetes.io/serviceaccount/ca.crt' # local path to CA file
+          url: https://default.svc
+          # skipTLSVerify: false
+          # serviceAccountToken: ${K8S_MINIKUBE_TOKEN}
+          customResources:
+            - group: 'argoproj.io'
+              apiVersion: 'v1alpha1'
+              plural: 'rollouts'
+            - group: workflows.jettisonproj.io
+              apiVersion: v1alpha1
+              plural: flows
 
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
