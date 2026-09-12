@@ -1,6 +1,7 @@
 app:
   title: Scaffolded Backstage App
-  baseUrl: http://localhost:3000
+  # Should be the same as backend.baseUrl when using the `app-backend` plugin.
+  baseUrl: https://backstage.osoriano.com
 
   # Enable all packages by default, this will discover packages from packages/app/package.json
   packages: all
@@ -106,24 +107,43 @@ backend:
   # auth:
   #   keys:
   #     - secret: ${BACKEND_SECRET}
-  baseUrl: http://localhost:7007
-  listen:
-    port: 7007
-    # Uncomment the following host directive to bind to specific interfaces
-    # host: 127.0.0.1
+
+  # Note that the baseUrl should be the URL that the browser and other clients
+  # should use when communicating with the backend, i.e. it needs to be
+  # reachable not just from within the backend host, but from all of your
+  # callers. When its value is "http://localhost:7007", it's strictly private
+  # and can't be reached by others.
+  baseUrl: https://backstage.osoriano.com
+  # The listener can also be expressed as a single <host>:<port> string. In this case we bind to
+  # all interfaces, the most permissive setting. The right value depends on your specific deployment.
+  # listen:
+  #   # Uncomment the following host directive to bind to specific interfaces
+  #   # host: 127.0.0.1
+  listen: ':7007'
   csp:
     connect-src: ["'self'", 'http:', 'https:']
     # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
     # Default Helmet Content-Security-Policy values can be removed by setting the key to false
-  cors:
-    origin: http://localhost:3000
-    methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
-    credentials: true
-  # This is for local development only, it is not recommended to use this in production
-  # The production database configuration is stored in app-config.production.yaml
+  # cors:
+  #   origin: http://localhost:3000
+  #   methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
+  #   credentials: true
+
+  # config options: https://node-postgres.com/apis/client
   database:
-    client: better-sqlite3
-    connection: ':memory:'
+    client: pg
+    connection:
+      host: postgres.postgres
+      port: 5432
+      user: postgres
+      password: root
+      # https://node-postgres.com/features/ssl
+      # you can set the sslmode configuration option via the `PGSSLMODE` environment variable
+      # see https://www.postgresql.org/docs/current/libpq-ssl.html Table 33.1. SSL Mode Descriptions (e.g. require)
+      # ssl:
+      #   ca: # if you have a CA file and want to verify it you can uncomment this section
+      #     $file: <file-path>/ca/server.crt
+
   # see https://backstage.io/docs/ai/mcp-actions#actions-configuration for more details
   actions:
     pluginSources:
@@ -197,20 +217,24 @@ catalog:
     pullRequestBranchName: backstage-integration
   rules:
     - allow: [Component, System, API, Resource, Location]
+
+  # See https://backstage.io/docs/features/software-catalog/#adding-components-to-the-catalog for more details
+  # on how to get entities into the catalog.
   locations:
-    # Local example data, file locations are relative to the backend process, typically `packages/backend`
+    # Local example data, replace this with your production config, these are intended for demo use only.
+    # File locations are relative to the backend process, typically in a deployed context, such as in a Docker container, this will be the root
     - type: file
-      target: ../../examples/entities.yaml
+      target: ./examples/entities.yaml
 
     # Local example template
     - type: file
-      target: ../../examples/template/template.yaml
+      target: ./examples/template/template.yaml
       rules:
         - allow: [Template]
 
     # Local example organizational data
     - type: file
-      target: ../../examples/org.yaml
+      target: ./examples/org.yaml
       rules:
         - allow: [User, Group]
 
@@ -263,3 +287,188 @@ permission:
 mcpActions:
   name: 'My Company Backstage' # defaults to "backstage"
   description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal' # optional
+
+kubernetesIngestor:
+  # Optional field to set the default owner of the ingested resources.
+  defaultOwner: kubernetes-auto-ingested
+
+  # inheritOwnerFromNamespace: false
+
+  # Whether to ingest API entities as CRD type instead of OpenAPI type (default: true)
+  # When true, API entities will have type "crd" with the full CRD YAML as definition
+  # When false, API entities will have type "openapi" with generated OpenAPI spec
+  # Note: CRD-type APIs require the api-docs-module-crd plugin for proper rendering
+  ingestAPIsAsCRDs: true
+
+  # Mappings of kubernetes resource metadata to backstage entity metadata
+  # The list bellow are the default values when the mappings are not set in the app-config.yaml
+  # The recommended values are:
+  # namespaceModel: 'cluster' # cluster, namespace, default
+  # nameModel: 'name-cluster' # name-cluster, name-namespace, name
+  # titleModel: 'name' # name, name-cluster, name-namespace
+  # systemModel: 'cluster-namespace' # cluster, namespace, cluster-namespace, default, none
+  # referencesNamespaceModel: 'default' # default, same
+  mappings:
+    namespaceModel: 'namespace' # cluster, namespace, default
+    nameModel: 'name' # name-cluster, name-namespace, name-kind, name, uid
+    titleModel: 'name' # name, name-cluster, name-namespace
+    systemModel: 'namespace' # cluster, namespace, cluster-namespace, default, none
+    referencesNamespaceModel: 'same' # default, same
+
+  # Default owner for ingested entities when no owner annotation is set
+  # defaultOwner: 'kubernetes-auto-ingested'
+
+  # A list of cluster names to ingest resources from. If empty, resources from all clusters under kubernetes.clusterLocatorMethods.clusters will be ingested.
+  # Note: Clusters using OIDC authentication are automatically excluded as they require client-side authentication.
+  # allowedClusterNames:
+  #   - my-cluster-name
+  # Cluster name mapping for entity annotations (optional)
+  # Maps backend cluster names (SA auth) to frontend cluster names (OIDC auth)
+  # clusterNameMapping:
+  #   mode: 'prefix-replacement'  # or 'explicit'
+  #   sourcePrefix: 'sa-'
+  #   targetPrefix: 'oidc-'
+  #   # For explicit mode:
+  #   # mappings:
+  #   #   'sa-cls-01': 'oidc-cls-01'
+  #   #   'sa-cls-02': 'oidc-cls-02'
+
+  components:
+    # Whether to enable creation of backstage components for Kubernetes workloads
+    enabled: true
+    # Whether to ingest Kubernetes workloads as Resource entities instead of Component entities (default: false)
+    ingestAsResources: false
+    taskRunner:
+      # How often to query the clusters for data
+      frequency: 10
+      # Max time to process the data per cycle
+      timeout: 600
+    # Namespaces to exclude the resources from
+    excludedNamespaces:
+      []
+      # - kube-public
+      # - kube-system
+    # Custom Resource Types to also generate components for
+    customWorkloadTypes:
+      - group: workflows.jettisonproj.io
+        apiVersion: v1alpha1
+        plural: flows
+        singular: flow # explicit singular form - needed when auto-detection fails
+        # defaultType: provider # Optional: fallback component type when annotation is missing. Default is service
+      - group: 'argoproj.io'
+        apiVersion: 'v1alpha1'
+        plural: 'rollouts'
+        singular: 'rollout'
+    # By default all standard kubernetes workload types are ingested. This allows you to disable this behavior
+    disableDefaultWorkloadTypes: false
+
+    # Allows ingestion to be opt-in or opt-out by either requiring or not a dedicated annotation to ingest a resource (terasky.backstage.io/add-to-catalog or terasky.backstage.io/exclude-from-catalog)
+    onlyIngestAnnotatedResources: false
+
+  crossplane:
+    # Whether to completely disable crossplane related code for both XRDs and Claims. defaults to enabled if not provided for backwards compatibility
+    enabled: false
+    # This section is relevant for crossplane v1 claims as well as Crossplane v2 XRs.
+    # In the future when v1 and claims are deprecated this field will change names but currently
+    # for backwards compatibility will stay as is
+    # claims:
+    #   # Whether to create components for all claim resources (v1) and XRs (v2) in your cluster
+    #   ingestAllClaims: true
+    #   # Whether to ingest claims and XRs as Resource entities instead of Component entities (default: false)
+    #   ingestAsResources: false
+    # xrds:
+    #   # Whether to ingest XRDs as API entities only without generating templates (default: false)
+    #   ingestOnlyAsAPI: false
+    #   # Settings related to the final steps of a software template
+    #   publishPhase:
+    #     # Base URLs of Git servers you want to allow publishing to
+    #     allowedTargets: ['github.com', 'gitlab.com']
+    #     # What to publish to. currently supports github, gitlab, bitbucket, bitbucketCloud and YAML (provides a link to download the file)
+    #     target: github
+    #     git:
+    #       # Follows the backstage standard format which is github.com?owner=<REPO OWNER>&repo=<REPO NAME>
+    #       repoUrl:
+    #       targetBranch: main
+    #       # Optional prefix prepended to the PR branch name (e.g. "feature/" → feature/create-my-resource)
+    #       branchPrefix: ""
+    #     # Whether the user should be able to select the repo they want to push the manifest to or not
+    #     allowRepoSelection: true
+    #     # Whether to request user OAuth credentials when selecting a repository URL (defaults to false)
+    #     requestUserCredentialsForRepoUrl: false
+    #   # Whether to enable the creation of software templates for all XRDs
+    #   enabled: true
+    #   taskRunner:
+    #     # How often to query the clusters for data
+    #     frequency: 10
+    #     # Max time to process the data per cycle
+    #     timeout: 600
+    #   # Allows ingestion to be opt-in or opt-out by either requiring or not a dedicated annotation to ingest a xrd (terasky.backstage.io/add-to-catalog or terasky.backstage.io/exclude-from-catalog)
+    #   ingestAllXRDs: true
+    #   # Will convert default values from the XRD into placeholders in the UI instead of always adding them to the generated manifest.
+    #   convertDefaultValuesToPlaceholders: true
+  genericCRDTemplates:
+    # Whether to ingest CRDs as API entities only without generating templates (default: false)
+    ingestOnlyAsAPI: false
+    # Settings related to the final steps of a software template
+    publishPhase:
+      # Base URLs of Git servers you want to allow publishing to
+      allowedTargets: ['github.com']
+      # What to publish to. currently supports github, gitlab, bitbucket, bitbucketCloud and YAML (provides a link to download the file)
+      target: github
+      git:
+        # Follows the backstage static format which is github.com?owner=<REPO OWNER>&repo=<REPO NAME>
+        repoUrl: github.com?owner=osoriano&repo=appfoundry
+        targetBranch: main
+        # Optional prefix prepended to the PR branch name (e.g. "feature/" → feature/create-my-resource)
+        branchPrefix: ''
+      # Whether the user should be able to select the repo they want to push the manifest to or not
+      allowRepoSelection: true
+      # Whether to request user OAuth credentials when selecting a repository URL (defaults to false)
+      requestUserCredentialsForRepoUrl: false
+    crdLabelSelector:
+      key: terasky.backstage.io/generate-form
+      value: 'true'
+    crds:
+      - certificates.cert-manager.io
+  kro:
+    # Whether to completely disable KRO related code for both RGDs and instances. defaults to disabled if not provided
+    enabled: false
+    # # Whether to ingest KRO instances as Resource entities instead of Component entities (default: false)
+    # instances:
+    #   ingestAsResources: false
+    # rgds:
+    #   # Whether to ingest RGDs as API entities only without generating templates (default: false)
+    #   ingestOnlyAsAPI: false
+    #   # Settings related to the final steps of a software template
+    #   publishPhase:
+    #     # Base URLs of Git servers you want to allow publishing to
+    #     allowedTargets: ['github.com', 'gitlab.com']
+    #     # What to publish to. currently supports github, gitlab, bitbucket, bitbucketCloud and YAML (provides a link to download the file)
+    #     target: github
+    #     git:
+    #       # Follows the backstage standard format which is github.com?owner=<REPO OWNER>&repo=<REPO NAME>
+    #       repoUrl:
+    #       targetBranch: main
+    #       # Optional prefix prepended to the PR branch name (e.g. "feature/" → feature/create-my-resource)
+    #       branchPrefix: ""
+    #     # Whether the user should be able to select the repo they want to push the manifest to or not
+    #     allowRepoSelection: true
+    #     # Whether to request user OAuth credentials when selecting a repository URL (defaults to false)
+    #     requestUserCredentialsForRepoUrl: false
+    #   # Whether to enable the creation of software templates for all RGDs
+    #   enabled: true
+    #   taskRunner:
+    #     # How often to query the clusters for data
+    #     frequency: 10
+    #     # Max time to process the data per cycle
+    #     timeout: 600
+  # Whether to auto add the argo cd plugins annotation to the ingested components if the ingested resources have the ArgoCD tracking annotation added to them. defaults to true
+  argoIntegration: true
+  # Orphan-protection settings for delta-based ingestion.
+  # Controls how many consecutive scheduled runs a cluster must be absent from
+  # getClusters() before its entities are removed from the catalog.
+  orphanProtection:
+    # Defaults to 3. Set to 0 to disable the grace period (immediate removal).
+    # Increase this value in environments where cluster registration is slow
+    # (e.g. dynamic providers that take several minutes to register all clusters).
+    gracePeriodRuns: 3
